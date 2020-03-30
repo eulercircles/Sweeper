@@ -1,19 +1,22 @@
 import os
 import sys
-import json
+import yaml
 import argparse
 
 from os import path
 
 class Sweeper(object):
   def __init__(self):
-    parser = argparse.ArgumentParser(description='', usage='')
+    parser = argparse.ArgumentParser(description='', usage='sweep.py <command> [<args>]')
     parser.add_argument('command', type=str, help='')
     args = parser.parse_args(sys.argv[1:2])
-    if not hasattr(self, args.command):
+
+    if (not hasattr(self, args.command)) or (str(args.command).startswith('__')):
       print('Unrecognized command:', args.command)
       parser.print_help()
       exit(1)
+      
+    self.__loadConfig()
     getattr(self, args.command)()
 
   def clean(self):
@@ -40,36 +43,37 @@ class Sweeper(object):
     args = parser.parse_args(sys.argv[2:])
 
     if(args.add):
-      if(not args.path):
+      if(not str(args.path)):
         print('Path not specified.')
         parser.print_help()
         exit(1)
-
       if (not path.exists(args.path)):
         print('Cannot add directory: it does not exist.')
         exit(1)
-
-      # add directory to list of roots
+      if (str(args.path) not in self.__config['directories']):
+        self.__config['directories'].append(args.path)
+        self.__saveConfig()
+    
     elif(args.remove):
       if (not args.path):
         print('Path not specified.')
         parser.print_help()
         exit(1)
-      
-      if (not path.exists(args.path)):
-        print('Directory does not exist.')
-        parser.print_help()
-        exit(1)
-      
-      # remove directory from list of roots
+      if (str(args.path) in self.__config['directories']):
+        self.__config['directories'].remove(str(args.path))
+        print('Removed directory.')
+    
+    # Clear the list of directories
     elif(args.clear):
-      # clear the list of roots
-      print ('Clearing roots...')
+      self.__config['directories'].clear()
+      self.__saveConfig()
+      print('Directories cleared.')
       
     else:
-      print ('Roots:')
+      for dir in self.__config['directories']:
+        print(dir)
 
-  def temps(self):
+  def junk(self):
     parser = argparse.ArgumentParser(description='', usage='')
     parser.add_argument('-n', '--name', type=str, required=False, help='')
     group = parser.add_mutually_exclusive_group()
@@ -79,7 +83,36 @@ class Sweeper(object):
     group.add_argument('-l', '--list', action='store_true', help='')
     args = parser.parse_args(sys.argv[2:])
 
+    if (args.add):
+      self.__config['junkTypes'].append(args.name)
+      self.__saveConfig()
+      print('Added junk type.')
+    
+    elif (args.remove):
+      if str(args.name) in self.__config['junkTypes']:
+        self.__config['junkTypes'].remove(str(args.name))
+        print('Removed junk type.')
+        self.__saveConfig()
+    
+    elif (args.clear):
+      self.__config['junkTypes'].clear()
+      self.__saveConfig()
+      print('Cleared junk types.')
+    
+    else:
+      for junkType in self.__config['junkTypes']:
+        print(junkType)
 
+  def __loadConfig(self):
+    if (path.exists('config.yml')):
+      with open('config.yml', 'r') as file:
+        self.__config = yaml.safe_load(file)
+    else:
+      self.__config = {'directories': [], 'junkTypes': []}
+
+  def __saveConfig(self):
+    with open('config.yml', 'w') as file:
+      yaml.dump(self.__config, file)
 
 if __name__ == '__main__':
   Sweeper()
