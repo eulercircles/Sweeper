@@ -1,4 +1,3 @@
-
 import yaml
 import argparse
 
@@ -51,14 +50,15 @@ Commands:
     group.add_argument('-c', '--clear', action='store_true', help='Clears the list of saved root directories.')
     group.add_argument('-l', '--list', action='store_true', help='Displays a list of saved root directories.')
     args = parser.parse_args(argv[2:])
-
+    
     if(args.add):
-      if(not str(args.path)):
+      if(not args.path):
         self.__printError('Path not specified.')
         parser.print_help()
         exit(1)
-      if (self.__addDirectory(str(args.path))): exit(0)
-      else: exit(1)
+      else:
+        if (self.__addDirectory(str(args.path))): exit(0)
+        else: exit(1)
     
     elif(args.remove):
       if (not args.path):
